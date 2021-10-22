@@ -25,14 +25,11 @@
 // Led Strip Leds
 CRGB ledstrip[NUM_LEDS]={{0}};
 
-// Network SSID
-//const char* ssid     = "BFD";
-//const char* password = "dingsdings";
+const char* ssid        = "DOMINIK";
+const char* pwd         = "Dominik1996";
 
-const char* ssid     = "DOMINIK";
-const char* password = "Dominik1996";
-
-const char* mqtt_server = "broker.mqttdashboard.com";
+const char* mqtt_server = "mqtt.fachschaft-it.de";
+const int mqtt_port = 4325;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -42,82 +39,145 @@ unsigned long lastMsg = 0;
 char msg[MSG_BUFFER_SIZE];
 int value = 0;
 
-
-
-
-// Button state for toggle button
+//Button state for toggle button
 unsigned int button_state = LOW;
 
-// do what needs to be done when the button fires.
-void toggle_state(){
-  button_state = !button_state;
+String clientId = "DMA_Client";
+
+//Function for setting up WiFi Connection
+void setupWifi(){
+  Serial.println();
+  Serial.print("Connecting to WIFI Network: ");
+  Serial.println(ssid);
+
+  //Start WiFi Connection
+  WiFi.mode(WIFI_STA);
+  WiFi.hostname("Blinkfunkdings_DMa");
+  WiFi.begin(ssid, pwd);
+
+  //Monitor Connectrion Establishment
+  while (WiFi.status() != WL_CONNECTED){
+    delay(100);
+    //Make LED 2 Red, if not Connected.
+    ledstrip[2] = CRGB::Red;
+    FastLED.show();
+    Serial.println("Connecting...");
+  }
+
+  Serial.println();
+  Serial.println("WiFi connected.");
+  Serial.println("IP Adress: ");
+  Serial.println(WiFi.localIP());
+  //Make LED 2 Green, if not Connected.
+  ledstrip[2] = CRGB::Green;
+  FastLED.show();
 }
 
 //Check for button presses. This was implemented a bit lazily.
-void handle_button(unsigned int button_pin)
+void handle_button()
 {
   static double last_push = 0;
   if(digitalRead(BUTTON_PIN) == LOW && millis() - last_push > 200){
     Serial.println("Push Button");
     last_push = millis();
-    toggle_state(); 
+    button_state = !button_state;
+
+    client.publish("Dominik", "Hallo FSIT!");
   }
 }
 
+//Establish MQTT Connection
+void mqttConnect(){
+  Serial.println("Connecting to MQTT Server...");
 
+  //Loop until connection
+  while (!client.connected()){
+    Serial.println("Connecting...");
+
+    //Random Client ID
+    clientId += String(random(0xffff), HEX);
+
+    //Try to connect
+    if (client.connect(clientId.c_str())) {
+      Serial.println("Connected!");
+
+      //Once connected, publish Announcment
+      client.publish("Dominik", "Is now Online!");
+
+      //Resubscribe
+      //client.subscribe("Julius");
+    } else {
+      Serial.println("Failed. Reconnect...");
+      Serial.println(client.state());
+      Serial.println("Try again in 5 seconds");
+      delay(5000);
+    }
+  }
+}
+
+//Callback, when Message recieved
+void callback(char* topic, byte* payload, unsigned int length) {
+  
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.println("] ");
+
+  ledstrip[3] = CRGB::Orange;
+  FastLED.show();
+  delay(100);
+  ledstrip[3] = CRGB::Black;
+  FastLED.show();
+}
 
 
 // Set up the pins, WLAN and LEDS 
 void setup() {
+
+  //Randomizer Init
+  randomSeed(micros());
   Serial.begin(115200);
-  Serial.println("\n Welcome to Blink-Funk-Dings-OS");
+  Serial.println();
+  Serial.println("Welcome to Blink-Funk-Dings-OS");
 
   // enable button
   pinMode(BUTTON_PIN, INPUT);
 
   FastLED.addLeds<NEOPIXEL, LED_PIN>(ledstrip, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);
-  
-  // Connect WiFi
-  Serial.println(WiFi.macAddress());
-  WiFi.hostname("Blinkfunkdings");
-  WiFi.begin(ssid, password);
 
+  setupWifi();
 
-  // Wait for connection. This blocks everything until connected.
-  while (WiFi.status() != WL_CONNECTED) {
-    ledstrip[2] = CRGB::Red;
-    FastLED.show();
-    delay(500);
-  }
+  client.setServer(mqtt_server, mqtt_port);
 
-  // Print the IP address when conneted
-  Serial.print("IP address: ");
-  Serial.print(WiFi.localIP());
-  Serial.print("\n");
-  ledstrip[2] = CRGB::Green;
-  FastLED.show();
+  client.setCallback(callback);
 }
  
 void loop() {
   static int counter  = 0;
   
-  handle_button(0);
-  //ledstrip[0] = 255;
+  handle_button();
+  ledstrip[0] = 255;
   ledstrip[1] = CHSV(counter % 255,255,255);
-  ledstrip[3] = (button_state == LOW?CRGB::Black: CRGB(255, 128, 0));
 
 
   // Check WLAN connection (no need to do this as often as we do here! This is just a demo
 
-  if ((WiFi.status() != WL_CONNECTED) && (counter % 2 == 1)) {
-    ledstrip[2] = CRGB::Red;
-  } else {
-    ledstrip[2] = CRGB::Green;
+  //if ((WiFi.status() != WL_CONNECTED) && (counter % 2 == 1)) {
+  //  ledstrip[2] = CRGB::Red;
+  //} else {
+  //  ledstrip[2] = CRGB::Green;
+  //}
+  
+  if (!client.connected()) {
+    mqttConnect();
+    client.subscribe("Julius");
   }
   
   FastLED.show();
   counter = counter +1  % 1024;
+  
+  client.loop();
+
   delay(100);
     
 }
