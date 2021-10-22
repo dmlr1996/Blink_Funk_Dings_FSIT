@@ -10,6 +10,10 @@
 #include <ESP8266WiFi.h> // Wifi Library
 #include "FastLED.h"     // LED Library
 
+//You need to make a File in your src Folder.
+//There the const char* ssid = <SSID> and 
+//const char* pwd = <PASSWORD> needs to be defined!
+#include <WifiCredentials.h>
 #include <SPI.h>
 #include <Ethernet.h>
 #include <PubSubClient.h>
@@ -25,8 +29,8 @@
 // Led Strip Leds
 CRGB ledstrip[NUM_LEDS]={{0}};
 
-const char* ssid        = "DOMINIK";
-const char* pwd         = "Dominik1996";
+//const char* ssid        = "DOMINIK";
+//const char* pwd         = "Dominik1996";
 
 const char* mqtt_server = "mqtt.fachschaft-it.de";
 const int mqtt_port = 4325;
