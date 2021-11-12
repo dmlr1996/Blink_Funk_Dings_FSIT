@@ -28,6 +28,7 @@
 
 // Led Strip Leds
 CRGB ledstrip[NUM_LEDS]={{0}};
+static int counter  = 0;
 
 //const char* ssid        = "DOMINIK";
 //const char* pwd         = "Dominik1996";
@@ -157,7 +158,6 @@ void setup() {
 }
  
 void loop() {
-  static int counter  = 0;
   
   handle_button();
   ledstrip[0] = 255;
