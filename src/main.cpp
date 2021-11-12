@@ -25,13 +25,11 @@
 #define NUM_LEDS   4 
 #define BRIGHTNESS 128
 #define LED_PIN    2
+#define LED_TYPE   
 
 // Led Strip Leds
 CRGB ledstrip[NUM_LEDS]={{0}};
 static int counter  = 0;
-
-//const char* ssid        = "DOMINIK";
-//const char* pwd         = "Dominik1996";
 
 const char* mqtt_server = "mqtt.fachschaft-it.de";
 const int mqtt_port = 4325;
