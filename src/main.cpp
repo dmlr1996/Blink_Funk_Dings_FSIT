@@ -7,8 +7,8 @@
  */
 
 
-#include <ESP8266WiFi.h> // Wifi Library
-#include "FastLED.h"     // LED Library
+#include <ESP8266WiFi.h>    // Wifi Library
+#include <NeoPixelBus.h>    // LED Library
 
 //You need to make a File in your src Folder.
 //There the const char* ssid = <SSID> and 
@@ -23,13 +23,21 @@
 
 #define BUTTON_PIN 0 
 #define NUM_LEDS   4 
-#define BRIGHTNESS 128
+#define RGB_BRIGHTNESS 128
 #define LED_PIN    2
 #define LED_TYPE   
 
+RgbColor red(RGB_BRIGHTNESS, 0, 0);
+RgbColor orange(RGB_BRIGHTNESS, RGB_BRIGHTNESS/2, 0);
+RgbColor green(0, RGB_BRIGHTNESS, 0);
+RgbColor blue(0, 0, RGB_BRIGHTNESS);
+RgbColor white(RGB_BRIGHTNESS);
+RgbColor black(0);
+
 // Led Strip Leds
-CRGB ledstrip[NUM_LEDS]={{0}};
+NeoPixelBus <NeoGrbFeature, NeoEsp8266BitBang800KbpsMethod> ledstrip(NUM_LEDS, LED_PIN);
 static int counter  = 0;
+const int counter_max = 1024;
 
 const char* mqtt_server = "mqtt.fachschaft-it.de";
 const int mqtt_port = 4325;
@@ -62,8 +70,8 @@ void setupWifi(){
   while (WiFi.status() != WL_CONNECTED){
     delay(100);
     //Make LED 2 Red, if not Connected.
-    ledstrip[2] = CRGB::Red;
-    FastLED.show();
+    ledstrip.SetPixelColor(2, red);
+    ledstrip.Show();
     Serial.println("Connecting...");
   }
 
@@ -72,8 +80,8 @@ void setupWifi(){
   Serial.println("IP Adress: ");
   Serial.println(WiFi.localIP());
   //Make LED 2 Green, if not Connected.
-  ledstrip[2] = CRGB::Green;
-  FastLED.show();
+  ledstrip.SetPixelColor(2, green);
+  ledstrip.Show();
 }
 
 //Check for button presses. This was implemented a bit lazily.
@@ -125,11 +133,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print(topic);
   Serial.println("] ");
 
-  ledstrip[3] = CRGB::Orange;
-  FastLED.show();
+  ledstrip.SetPixelColor(3, orange);
+  ledstrip.Show();
+
   delay(100);
-  ledstrip[3] = CRGB::Black;
-  FastLED.show();
+
+  ledstrip.SetPixelColor(3, black);
+  ledstrip.Show();
 }
 
 
@@ -145,9 +155,6 @@ void setup() {
   // enable button
   pinMode(BUTTON_PIN, INPUT);
 
-  FastLED.addLeds<NEOPIXEL, LED_PIN>(ledstrip, NUM_LEDS);
-  FastLED.setBrightness(BRIGHTNESS);
-
   setupWifi();
 
   client.setServer(mqtt_server, mqtt_port);
@@ -158,9 +165,9 @@ void setup() {
 void loop() {
   
   handle_button();
-  ledstrip[0] = 255;
-  ledstrip[1] = CHSV(counter % 255,255,255);
-
+  ledstrip.SetPixelColor(0, 255);
+  HsbColor pixl1((1.0 * counter) / counter_max, 1.0, 1.0);
+  ledstrip.SetPixelColor(1, pixl1);
 
   // Check WLAN connection (no need to do this as often as we do here! This is just a demo
 
@@ -175,8 +182,8 @@ void loop() {
     client.subscribe("Julius");
   }
   
-  FastLED.show();
-  counter = counter +1  % 1024;
+  ledstrip.Show();
+  counter = (counter++)  % 1024;
   
   client.loop();
 
