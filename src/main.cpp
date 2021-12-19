@@ -183,7 +183,8 @@ void loop() {
   }
   
   ledstrip.Show();
-  counter = (counter++)  % 1024;
+  counter++;
+  counter = counter %1024;
   
   client.loop();
 
